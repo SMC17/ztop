@@ -32,6 +32,47 @@ pub fn build(b: *std.Build) void {
     cpu_col_mod.addImport("core", core_mod);
     cpu_col_mod.addImport("util", util_mod);
 
+    // Network collector
+    const net_col_mod = b.createModule(.{
+        .root_source_file = b.path("src/collector/net/linux.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    net_col_mod.addImport("core", core_mod);
+
+    // Disk collector
+    const disk_col_mod = b.createModule(.{
+        .root_source_file = b.path("src/collector/disk/linux.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    disk_col_mod.addImport("core", core_mod);
+
+    // Thermal + frequency collector
+    const thermal_col_mod = b.createModule(.{
+        .root_source_file = b.path("src/collector/thermal/linux.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    thermal_col_mod.addImport("core", core_mod);
+
+    // Historical logger
+    const log_mod = b.createModule(.{
+        .root_source_file = b.path("src/collector/log/writer.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    log_mod.addImport("core", core_mod);
+    log_mod.addImport("util", util_mod);
+
+    // REST API server
+    const api_mod = b.createModule(.{
+        .root_source_file = b.path("src/api/http.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    api_mod.addImport("core", core_mod);
+
     // ztop — CPU system monitor
     const ztop = b.addExecutable(.{
         .name = "ztop",
@@ -40,10 +81,15 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
             .imports = &.{
-                .{ .name = "zkdb", .module = zkdb_mod },
-                .{ .name = "core", .module = core_mod },
-                .{ .name = "cpu", .module = cpu_col_mod },
-                .{ .name = "util", .module = util_mod },
+                .{ .name = "zkdb",    .module = zkdb_mod },
+                .{ .name = "core",    .module = core_mod },
+                .{ .name = "cpu",     .module = cpu_col_mod },
+                .{ .name = "net",     .module = net_col_mod },
+                .{ .name = "disk",    .module = disk_col_mod },
+                .{ .name = "thermal", .module = thermal_col_mod },
+                .{ .name = "log",     .module = log_mod },
+                .{ .name = "api",     .module = api_mod },
+                .{ .name = "util",    .module = util_mod },
             },
         }),
     });
@@ -91,9 +137,11 @@ pub fn build(b: *std.Build) void {
     b.step("run-gpu", "Run ztop-g (GPU monitor)").dependOn(&run_ztop_g.step);
 
     // Tests
-    const test_core = b.addTest(.{ .root_module = core_mod });
-    const test_cpu = b.addTest(.{ .root_module = cpu_col_mod });
     const test_step = b.step("test", "Run tests");
-    test_step.dependOn(&b.addRunArtifact(test_core).step);
-    test_step.dependOn(&b.addRunArtifact(test_cpu).step);
+    test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = core_mod })).step);
+    test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = cpu_col_mod })).step);
+    test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = net_col_mod })).step);
+    test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = disk_col_mod })).step);
+    test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = thermal_col_mod })).step);
+    test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = log_mod })).step);
 }

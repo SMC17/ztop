@@ -97,9 +97,95 @@ pub const ProcessInfo = struct {
     l3_miss_rate: f32,      // LLC cache misses / instructions
     branch_miss_rate: f32,  // branch mispredictions / instructions
 
+    // Disk I/O rates (from /proc/PID/io deltas)
+    disk_read_kb_s: f32 = 0,
+    disk_write_kb_s: f32 = 0,
+
+    // Container label (first 12 chars of cgroup docker ID, empty if bare metal)
+    container_id: [13]u8 = [_]u8{0} ** 13,
+    container_id_len: u8 = 0,
+
     pub fn nameSlice(self: *const ProcessInfo) []const u8 {
         return self.name[0..self.name_len];
     }
+
+    pub fn containerSlice(self: *const ProcessInfo) []const u8 {
+        return self.container_id[0..self.container_id_len];
+    }
+};
+
+// ── Network ───────────────────────────────────────────────────────────────────
+
+pub const NetIface = struct {
+    name: [16]u8,
+    name_len: u8,
+    rx_bytes: u64,
+    tx_bytes: u64,
+    rx_packets: u64,
+    tx_packets: u64,
+    rx_errors: u64,
+    tx_errors: u64,
+    rx_rate_kb_s: f32,
+    tx_rate_kb_s: f32,
+
+    pub fn nameSlice(self: *const NetIface) []const u8 {
+        return self.name[0..self.name_len];
+    }
+};
+
+// ── Disk ──────────────────────────────────────────────────────────────────────
+
+pub const DiskStat = struct {
+    name: [16]u8,
+    name_len: u8,
+    reads_completed: u64,
+    writes_completed: u64,
+    read_bytes: u64,
+    write_bytes: u64,
+    read_rate_kb_s: f32,
+    write_rate_kb_s: f32,
+
+    pub fn nameSlice(self: *const DiskStat) []const u8 {
+        return self.name[0..self.name_len];
+    }
+};
+
+// ── Thermal ───────────────────────────────────────────────────────────────────
+
+pub const ThermalSensor = struct {
+    chip: [32]u8,
+    chip_len: u8,
+    label: [32]u8,
+    label_len: u8,
+    temp_mc: u64, // millidegrees Celsius
+
+    pub fn temp_c(self: ThermalSensor) f32 {
+        return @as(f32, @floatFromInt(self.temp_mc)) / 1000.0;
+    }
+
+    pub fn chipSlice(self: *const ThermalSensor) []const u8 {
+        return self.chip[0..self.chip_len];
+    }
+
+    pub fn labelSlice(self: *const ThermalSensor) []const u8 {
+        return self.label[0..self.label_len];
+    }
+};
+
+pub const CpuFreq = struct {
+    core_id: u32,
+    freq_khz: u64,
+
+    pub fn freq_mhz(self: CpuFreq) f32 {
+        return @as(f32, @floatFromInt(self.freq_khz)) / 1000.0;
+    }
+};
+
+pub const PowerInfo = struct {
+    package_w: f32,
+    core_w: f32,
+    dram_w: f32,
+    valid: bool, // false if RAPL not available
 };
 
 // ── GPU ───────────────────────────────────────────────────────────────────────
