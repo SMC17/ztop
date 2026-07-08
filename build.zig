@@ -40,6 +40,14 @@ pub fn build(b: *std.Build) void {
     });
     net_col_mod.addImport("core", core_mod);
 
+    // TCP connection table
+    const tcp_mod = b.createModule(.{
+        .root_source_file = b.path("src/collector/net/tcp.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    tcp_mod.addImport("core", core_mod);
+
     // Disk collector
     const disk_col_mod = b.createModule(.{
         .root_source_file = b.path("src/collector/disk/linux.zig"),
@@ -89,6 +97,7 @@ pub fn build(b: *std.Build) void {
                 .{ .name = "thermal", .module = thermal_col_mod },
                 .{ .name = "log",     .module = log_mod },
                 .{ .name = "api",     .module = api_mod },
+                .{ .name = "tcp",     .module = tcp_mod },
                 .{ .name = "util",    .module = util_mod },
             },
         }),
@@ -144,4 +153,5 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = disk_col_mod })).step);
     test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = thermal_col_mod })).step);
     test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = log_mod })).step);
+    test_step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = tcp_mod })).step);
 }

@@ -105,6 +105,9 @@ pub const ProcessInfo = struct {
     container_id: [13]u8 = [_]u8{0} ** 13,
     container_id_len: u8 = 0,
 
+    // TCP connections (established count from /proc/net/tcp)
+    tcp_conn_count: u16 = 0,
+
     pub fn nameSlice(self: *const ProcessInfo) []const u8 {
         return self.name[0..self.name_len];
     }

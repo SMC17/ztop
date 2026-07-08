@@ -18,6 +18,7 @@ const disk    = @import("disk");
 const thermal = @import("thermal");
 const log     = @import("log");
 const api     = @import("api");
+const tcp     = @import("tcp");
 const util    = @import("util");
 const ansi    = @import("ui/ansi.zig");
 
@@ -123,11 +124,16 @@ pub fn main() !void {
         const procs = try collector.collectProcesses(frame_alloc, &snap);
         const net_ifaces = net_col.collect(frame_alloc, dt_s) catch &.{};
         const disk_stats = disk_col.collect(frame_alloc, dt_s) catch &.{};
-        // Collect per-process disk rates and container labels.
+        // TCP connections: build inode→PID map, collect, annotate processes.
+        var inode_pid = tcp.buildInodePidMap(frame_alloc);
+        defer inode_pid.deinit();
+        const tcp_conns = tcp.collectTcp(frame_alloc, &inode_pid) catch &.{};
+        // Collect per-process disk rates, container labels, TCP conn counts.
         for (procs) |*p| {
             const rates = disk_col.pidIoRates(frame_alloc, p.pid, dt_s);
             p.disk_read_kb_s  = rates.r;
             p.disk_write_kb_s = rates.w;
+            p.tcp_conn_count  = @intCast(@min(tcp.countPerPid(tcp_conns, p.pid), 65535));
             collectContainerLabel(frame_alloc, p);
         }
         const sensors     = thermal.collectThermal(frame_alloc) catch &.{};
@@ -136,6 +142,11 @@ pub fn main() !void {
 
         // Publish to REST API.
         api_snap.updateCpu(&snap);
+        {
+            var cbuf: [8192]u8 = undefined;
+            const cn = encodeTcpConns(tcp_conns, &cbuf);
+            api_snap.updateConns(cbuf[0..cn]);
+        }
         {
             var pbuf: [65536]u8 = undefined;
             const pn = api.encodeProcs(procs, &pbuf);
@@ -237,6 +248,32 @@ fn collectContainerLabel(alloc: std.mem.Allocator, p: *core.ProcessInfo) void {
         break;
     }
     _ = alloc;
+}
+
+// Encode TCP connection slice into JSON for REST API.
+fn encodeTcpConns(conns: []const tcp.TcpConn, buf: []u8) usize {
+    var len: usize = 0;
+    const write = struct {
+        fn w(b: []u8, l: *usize, s: []const u8) void {
+            const n = @min(s.len, b.len -| l.*);
+            @memcpy(b[l.* .. l.* + n], s[0..n]);
+            l.* += n;
+        }
+    }.w;
+    write(buf, &len, "[");
+    var first = true;
+    for (conns) |c| {
+        if (c.state != .established) continue; // only established for REST default
+        if (!first) write(buf, &len, ",");
+        first = false;
+        var tmp: [256]u8 = undefined;
+        const entry = std.fmt.bufPrint(&tmp,
+            "{{\"pid\":{d},\"lport\":{d},\"rport\":{d},\"state\":\"{s}\"}}",
+            .{ c.pid, c.local_port, c.remote_port, c.state.name() }) catch continue;
+        write(buf, &len, entry);
+    }
+    write(buf, &len, "]");
+    return len;
 }
 
 fn renderFrame(
@@ -518,6 +555,12 @@ fn renderFrame(
         const dw_padded = std.fmt.bufPrint(&tmp, " {s:>5}", .{dw_s}) catch "      ";
         s.putStr(row, c2 + 7, dw_padded,
             if (proc.disk_write_kb_s > 1024) .yellow else .bright_black, .default, .{});
+
+        // TCP conn count badge (only if > 0, keeps table clean for non-networked procs)
+        if (proc.tcp_conn_count > 0) {
+            const tc_s = std.fmt.bufPrint(&tmp, " T{d}", .{proc.tcp_conn_count}) catch "";
+            s.putStr(row, c2 + 14, tc_s, .cyan, .default, .{});
+        }
 
         // Name + optional container badge
         const name = proc.nameSlice();
