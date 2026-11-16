@@ -1,0 +1,9 @@
+# ztop
+
+> ztop — Zig-native system monitor (htop + nvtop successor) backed by zkdb
+
+## Links
+
+- Repository: https://github.com/SMC17/ztop
+- Ecosystem / Fleet Hub: https://github.com/SMC17/zinging
+- Author / Organization: https://github.com/SMC17
