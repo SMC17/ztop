@@ -4,6 +4,7 @@
     .fingerprint = 0xc45e593c98d81a89,
     .minimum_zig_version = "0.16.0",
     .dependencies = .{
+        // Upstream: https://github.com/SMC17/zkdb (expected as sibling checkout ../zkdb)
         .zkdb = .{
             .path = "../zkdb",
         },
