@@ -478,6 +478,8 @@ test "parseMemField" {
 }
 
 test "collectCpuTicks smoke" {
+    // Reads the live Linux procfs; nothing to read on other hosts.
+    if (@import("builtin").os.tag != .linux) return error.SkipZigTest; // needs Linux /proc
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const result = try collectCpuTicks(arena.allocator());
@@ -486,6 +488,8 @@ test "collectCpuTicks smoke" {
 }
 
 test "collectMemInfo smoke" {
+    // Reads the live Linux procfs; nothing to read on other hosts.
+    if (@import("builtin").os.tag != .linux) return error.SkipZigTest; // needs Linux /proc
     var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
     defer arena.deinit();
     const m = try collectMemInfo(arena.allocator());

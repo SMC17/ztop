@@ -22,13 +22,15 @@ Every other system monitor (htop, btop, bottom, nvtop) shows you a snapshot. zto
 Requires: Zig 0.16, NVIDIA driver (for ztop-g), Linux.
 
 ```
-zig build                    # builds both binaries into zig-out/bin/
+zig build                    # builds ztop (and ztop-g on Linux) into zig-out/bin/
 zig build run                # run ztop (CPU monitor)
 zig build run-gpu            # run ztop-g (GPU monitor)
 zig build test --summary all # run tests
 ```
 
-Dependencies: [zkdb](https://github.com/SMC17/zkdb) (path dep via `../zkdb`).
+Dependencies: [zkdb](https://github.com/SMC17/zkdb) (pinned git dependency in `build.zig.zon`, fetched by `zig build`).
+
+On non-Linux hosts `zig build test` skips the two smoke tests that read the live `/proc` filesystem.
 
 ### perf_event_open permissions
 
