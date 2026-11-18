@@ -4,9 +4,9 @@
     .fingerprint = 0xc45e593c98d81a89,
     .minimum_zig_version = "0.16.0",
     .dependencies = .{
-        // Upstream: https://github.com/SMC17/zkdb (expected as sibling checkout ../zkdb)
         .zkdb = .{
-            .path = "../zkdb",
+            .url = "git+https://github.com/SMC17/zkdb#8a8904f60cc2f1b25ed47ae8ce285dcd2d27f574",
+            .hash = "zkdb-0.1.0-mHlMFRySAgCsdeJD4_lfOOVicLezBqoEu-Qoea7fUfbt",
         },
     },
     .paths = .{
