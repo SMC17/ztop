@@ -1,5 +1,7 @@
 # ztop
 
+**[Status](STATUS.md) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md) · [Issues](https://github.com/SMC17/ztop/issues) · [Public roadmap](https://github.com/users/SMC17/projects/16)**
+
 Zig-native system monitor. Two binaries:
 
 - **`ztop`** — htop successor: CPU utilization, memory, per-process table with IPC column (instructions-per-cycle via `perf_event_open`), temporal rewind backed by a ring-buffer time-series engine.
